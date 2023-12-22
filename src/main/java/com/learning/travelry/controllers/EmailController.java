@@ -8,11 +8,9 @@ import com.learning.travelry.service.UserService;
 import com.learning.travelry.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth/email")
 public class EmailController {
@@ -25,11 +23,12 @@ public class EmailController {
     @PostMapping("/sendVerification")
     public ResponseEntity<?> sendEmailVerificationLink(@RequestBody OnlyEmailRequest details)
     {
+        System.out.println("reached");
         if (userService.existEmail(details.getEmail())) {
             String message = "Thanks for registering with us\n\n";
             message += "Click on below link for email verification link.\n\n";
             String token = JwtUtil.generateToken(details.getEmail());
-            message += ("http://localhost:8080/api/auth/verify/"+token);
+            message += ("http://localhost:3000/verify?token="+token);
 
             EmailDetails emailDetails = new EmailDetails(
                     details.getEmail(), message, "Email Verification Needed!", null
