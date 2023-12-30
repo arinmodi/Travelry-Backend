@@ -6,6 +6,7 @@ import com.learning.travelry.payload.response.MessageResponse;
 import com.learning.travelry.service.EmailService;
 import com.learning.travelry.service.UserService;
 import com.learning.travelry.utils.JwtUtil;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class EmailController {
     private UserService userService;
 
     @PostMapping("/sendVerification")
-    public ResponseEntity<?> sendEmailVerificationLink(@RequestBody OnlyEmailRequest details)
+    public ResponseEntity<?> sendEmailVerificationLink(@Valid @RequestBody OnlyEmailRequest details)
     {
         System.out.println("reached");
         if (userService.existEmail(details.getEmail())) {
