@@ -4,11 +4,13 @@ import com.learning.travelry.entities.User;
 
 public interface UserService {
 
-        public void save(User theUser);
+        void save(User theUser);
 
-        public Boolean existEmail(String email);
+        Boolean existEmail(String email);
 
-        public Boolean markUserVerified(String email);
+        Boolean markUserVerified(String email);
 
-        public User getUser(String email);
+        User getUser(String email);
+
+        Boolean updateUser(String profilePhoto, String username, String email);
 }

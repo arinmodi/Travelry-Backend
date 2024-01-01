@@ -46,16 +46,20 @@ public class AuthenticationController {
     public ResponseEntity<?> verifyEmail(
             @PathVariable(value="token") String token
     ) {
-        String response = JwtUtil.extractEmail(token);
+        try {
+            if (JwtUtil.validateToken(token)) {
+                String response = JwtUtil.extractEmail(token);
 
-        if (response == null) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid token!"));
-        } else {
-            if (userService.markUserVerified(response)) {
-                return ResponseEntity.ok(new MessageResponse("Successfully verified"));
+                if (userService.markUserVerified(response)) {
+                    return ResponseEntity.ok(new MessageResponse("Successfully verified"));
+                } else {
+                    return ResponseEntity.badRequest().body(new MessageResponse("Error: Something Bad Happen!"));
+                }
             } else {
-                return ResponseEntity.badRequest().body(new MessageResponse("Error: Something Bad Happen!"));
+                return ResponseEntity.internalServerError().body(new MessageResponse("Something bad happen!"));
             }
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(new MessageResponse(ex.getMessage()));
         }
     }
 
@@ -69,8 +73,13 @@ public class AuthenticationController {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
         if (passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            String token = JwtUtil.generateTokenForLogin(loginRequest.getEmail());
-            return ResponseEntity.ok(new LoginResponse("Successfully LoggedIn", token));
+
+            if (user.getEmailVerified()) {
+                String token = JwtUtil.generateTokenForLogin(loginRequest.getEmail());
+                return ResponseEntity.ok(new LoginResponse("Successfully LoggedIn", token));
+            } else {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: Email Verification Required"));
+            }
         } else {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid credentials!"));
         }

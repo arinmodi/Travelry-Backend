@@ -7,8 +7,8 @@ import com.learning.travelry.payload.response.MediaUploadListResponse;
 import com.learning.travelry.payload.response.MediaUploadResponse;
 import com.learning.travelry.payload.response.MessageResponse;
 import com.learning.travelry.service.MediaService;
+import com.learning.travelry.utils.FileUtils;
 import jakarta.validation.Valid;
-import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -31,21 +29,19 @@ public class MediaController {
     @Autowired
     private MediaService mediaService;
 
-    private boolean isValidFile(MultipartFile multipartFile) {
-        if (Objects.isNull(multipartFile.getOriginalFilename())) {
-            return false;
-        }
-        return !multipartFile.getOriginalFilename().trim().equals("");
-    }
-
     @PostMapping("/upload")
     public ResponseEntity<?> uploadMedia(@Valid @ModelAttribute MediaUploadRequest mediaUploadRequest, BindingResult bindingResult)
             throws FileEmptyException, IOException {
 
         if (bindingResult.hasErrors()) {
             List<String> errors = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
-            return ResponseEntity.badRequest().body(new MessageResponse("Validation errors: " + errors));
+                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            if (!errors.isEmpty()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Validation errors: " + errors));
+            }
         }
 
         for (MultipartFile multipartFile : mediaUploadRequest.getMultipartFiles()) {
@@ -57,13 +53,9 @@ public class MediaController {
         }
 
         boolean isValidFile = true;
-        List<String> allowedFileExtensions = new ArrayList<>(Arrays.asList("png", "jpg", "jpeg", "mp4"));
 
         for (MultipartFile multipartFile : mediaUploadRequest.getMultipartFiles()) {
-            boolean isValidLocal = isValidFile(multipartFile) &&
-                    allowedFileExtensions.contains(FilenameUtils.getExtension(
-                            multipartFile.getOriginalFilename()
-                    ));
+            boolean isValidLocal = FileUtils.isValidFile(multipartFile) && FileUtils.isFileMedia(multipartFile);
             isValidFile = isValidFile && isValidLocal;
         }
 

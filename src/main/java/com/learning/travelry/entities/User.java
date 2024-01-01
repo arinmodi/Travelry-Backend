@@ -9,6 +9,22 @@ import jakarta.persistence.Table;
 @Table(name="users")
 public class User {
 
+    @Id
+    @Column(name="email")
+    private String email;
+
+    @Column(name = "username")
+    private String username;
+
+    @Column(name="is_email_verified")
+    private Boolean isEmailVerified;
+
+    @Column(name="password")
+    private String password;
+
+    @Column(name = "profile_photo")
+    private String profilePhoto;
+
     public User() { }
 
     public User(String email, String username, Boolean isEmailVerified, String password) {
@@ -18,18 +34,13 @@ public class User {
         this.password = password;
     }
 
-    @Id
-    @Column(name="email")
-    private String email;
-
-    @Column(name = "username")
-    private String username;
-
-    @Column(name="isemailverified")
-    private Boolean isEmailVerified;
-
-    @Column(name="password")
-    private String password;
+    public User(String email, String username, Boolean isEmailVerified, String password, String profilePhoto) {
+        this.email = email;
+        this.username = username;
+        this.isEmailVerified = isEmailVerified;
+        this.password = password;
+        this.profilePhoto = profilePhoto;
+    }
 
     public String getEmail() {
         return email;
@@ -63,6 +74,14 @@ public class User {
         this.password = password;
     }
 
+    public String getProfilePhoto() {
+        return profilePhoto;
+    }
+
+    public void setProfilePhoto(String profilePhoto) {
+        this.profilePhoto = profilePhoto;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -70,6 +89,7 @@ public class User {
                 ", username='" + username + '\'' +
                 ", isEmailVerified=" + isEmailVerified +
                 ", password='" + password + '\'' +
+                ", profilePhoto='" + profilePhoto + '\'' +
                 '}';
     }
 }
