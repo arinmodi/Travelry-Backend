@@ -1,14 +1,18 @@
 package com.learning.travelry.controllers;
 
 import com.learning.travelry.entities.Diary;
+import com.learning.travelry.entities.Member;
+import com.learning.travelry.entities.PublicUser;
 import com.learning.travelry.entities.User;
 import com.learning.travelry.exceptions.AwsExceptions.FileEmptyException;
+import com.learning.travelry.payload.request.AddMemberRequest;
 import com.learning.travelry.payload.request.CreateDiaryRequest;
 import com.learning.travelry.payload.request.UpdateDiaryRequest;
-import com.learning.travelry.payload.request.UpdateProfileRequest;
+import com.learning.travelry.payload.response.MembersListResponse;
 import com.learning.travelry.payload.response.MessageResponse;
 import com.learning.travelry.service.DiaryService;
 import com.learning.travelry.service.MediaService;
+import com.learning.travelry.service.MemberService;
 import com.learning.travelry.service.UserService;
 import com.learning.travelry.utils.FileUtils;
 import jakarta.validation.Valid;
@@ -22,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigInteger;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,6 +44,9 @@ public class DiaryController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private MemberService memberService;
 
     @PostMapping("/")
     public ResponseEntity<?> createDiary(@Valid @ModelAttribute CreateDiaryRequest createDiaryRequest,
@@ -76,12 +85,12 @@ public class DiaryController {
             } else {
                 try {
                     List<String[]> response = mediaService.uploadFiles(
-                        new MultipartFile[] { image }, "covers"
+                            new MultipartFile[]{image}, "covers"
                     );
 
                     imageUrl = response.get(0)[1];
 
-                }catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     return ResponseEntity.internalServerError().body(new MessageResponse("Internal Server Error"));
                 }
@@ -90,18 +99,21 @@ public class DiaryController {
 
         User creator = userService.getUser(email);
 
+        long currentTimestampMillis = Instant.now().toEpochMilli();
+
         Diary newDiary = new Diary(
                 createDiaryRequest.getDiaryName(),
                 imageUrl,
                 null,
                 createDiaryRequest.getColor(),
-                creator
+                creator,
+                new Timestamp(currentTimestampMillis)
         );
 
         try {
             diaryService.save(newDiary);
             return ResponseEntity.ok(new MessageResponse("Diary Created Successfully"));
-        }catch (Exception e) {
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Something bad happen"));
         }
     }
@@ -128,10 +140,6 @@ public class DiaryController {
         MultipartFile coverImage = updateDiaryRequest.getCoverImage();
         MultipartFile headerImage = updateDiaryRequest.getHeader();
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = (String) authentication.getPrincipal();
-
-
         if (coverImage != null && coverImage.isEmpty()) {
             throw new FileEmptyException(
                     coverImage.getOriginalFilename() + " is empty. Cannot save an empty file"
@@ -154,12 +162,12 @@ public class DiaryController {
             } else {
                 try {
                     List<String[]> response = mediaService.uploadFiles(
-                        new MultipartFile[] { coverImage }, "covers"
+                            new MultipartFile[]{coverImage}, "covers"
                     );
 
                     coverImageUrl = response.get(0)[1];
 
-                }catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     return ResponseEntity.internalServerError().body(new MessageResponse("Internal Server Error"));
                 }
@@ -176,12 +184,12 @@ public class DiaryController {
             } else {
                 try {
                     List<String[]> response = mediaService.uploadFiles(
-                        new MultipartFile[] { headerImage }, "headers"
+                            new MultipartFile[]{headerImage}, "headers"
                     );
 
                     headerImageUrl = response.get(0)[1];
 
-                }catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     return ResponseEntity.internalServerError().body(new MessageResponse("Internal Server Error"));
                 }
@@ -197,9 +205,79 @@ public class DiaryController {
                     updateDiaryRequest.getDiaryName()
             );
             return ResponseEntity.ok(new MessageResponse("Diary Updated Successfully"));
-        }catch (Exception e) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Something bad happen"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new MessageResponse("Something bad happen"));
         }
     }
 
+    @PostMapping("/addMember")
+    public ResponseEntity<?> addMember(@Valid @RequestBody AddMemberRequest addMemberRequest) {
+        BigInteger id = addMemberRequest.getId();
+        String member = addMemberRequest.getEmail();
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = (String) authentication.getPrincipal();
+
+        try {
+            Diary diary = diaryService.getDiaryById(id);
+
+            if (diary == null) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Invalid Diary"));
+            }
+
+            User memberObject = userService.getUser(member);
+
+            if (memberObject == null) {
+                return ResponseEntity.badRequest().body(new MessageResponse("User Not Exists"));
+            }
+
+            List<PublicUser> members = memberService.getMembersByDiaryId(id);
+
+            boolean isMemberOrOwner = false;
+
+            if (diary.getCreator().getEmail().equals(email)) {
+                isMemberOrOwner = true;
+            } else {
+                for (PublicUser pu : members) {
+                    if (pu.getEmail().equals(email)) {
+                        isMemberOrOwner = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isMemberOrOwner) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error : Unauthorized access"));
+            }
+
+            if (diary.getCreator().getEmail().equals(addMemberRequest.getEmail())) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Owner can't be added as member"));
+            }
+
+            if (memberService.save(
+                    new Member(
+                            id + "-" + member, memberObject, diary
+                    )
+            )) {
+                return ResponseEntity.ok(new MessageResponse("Member Added to diary"));
+            } else {
+                return ResponseEntity.badRequest().body(new MessageResponse("Member already exists"));
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.toString());
+            return ResponseEntity.internalServerError().body(new MessageResponse("Something bad happen"));
+        }
+    }
+
+    @GetMapping("/{diaryId}/members")
+    public ResponseEntity<?> getMembers(@PathVariable(value = "diaryId") BigInteger diaryId) {
+        try {
+            List<PublicUser> members = memberService.getMembersByDiaryId(diaryId);
+            return ResponseEntity.ok(new MembersListResponse((members)));
+        } catch (Exception e) {
+            System.out.println(e.toString());
+            return ResponseEntity.internalServerError().body(new MessageResponse("Something bad happen"));
+        }
+    }
 }

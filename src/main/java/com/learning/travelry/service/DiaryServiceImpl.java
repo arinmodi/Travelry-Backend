@@ -1,12 +1,13 @@
 package com.learning.travelry.service;
 
 import com.learning.travelry.entities.Diary;
-import com.learning.travelry.payload.request.UpdateDiaryRequest;
+import com.learning.travelry.entities.PublicDiary;
 import com.learning.travelry.repository.DiaryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
+import java.util.List;
 
 @Service
 public class DiaryServiceImpl implements DiaryService {
@@ -53,5 +54,15 @@ public class DiaryServiceImpl implements DiaryService {
         }
 
         return false;
+    }
+
+    @Override
+    public List<PublicDiary> getDiary(String email, String sort, String limit, String offset) {
+        return diaryRepository.getMyDiary(email, sort, new BigInteger(limit), new BigInteger(offset));
+    }
+
+    @Override
+    public List<PublicDiary> getDiaryWithSearch(String email, String search) {
+        return diaryRepository.getMyDiaryWithSearch(email, search);
     }
 }
