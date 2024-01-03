@@ -7,10 +7,7 @@ import com.learning.travelry.payload.request.MediaUploadRequest;
 import com.learning.travelry.payload.response.MediaUploadListResponse;
 import com.learning.travelry.payload.response.MediaUploadResponse;
 import com.learning.travelry.payload.response.MessageResponse;
-import com.learning.travelry.service.DiaryService;
-import com.learning.travelry.service.MediaService;
-import com.learning.travelry.service.MemberService;
-import com.learning.travelry.service.UserService;
+import com.learning.travelry.service.*;
 import com.learning.travelry.utils.FileUtils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +43,9 @@ public class MediaController {
 
     @Autowired
     private MemberService memberService;
+
+    @Autowired
+    private ActivityService activityService;
 
     private boolean isMemberOrOwner(Diary diary, String email) {
         List<PublicUser> members = memberService.getMembersByDiaryId(diary.getId());
@@ -126,6 +126,11 @@ public class MediaController {
                 }
 
                 if (mediaService.saveAll(medias)) {
+                    Activity activity = new Activity(
+                            diary, owner, "uploaded " + finalResponse.size() + " file to ",
+                            new Timestamp(Instant.now().toEpochMilli())
+                    );
+                    activityService.save(activity);
                     return ResponseEntity.ok(new MediaUploadListResponse(finalResponse));
                 } else {
                     return ResponseEntity.internalServerError().body(new MessageResponse("something bad happen"));
@@ -157,6 +162,11 @@ public class MediaController {
         int response = mediaService.deleteFile(deleteMediaRequest.getFileName());
 
         if (response == 1) {
+            Activity activity = new Activity(
+                    media.getDiary(), media.getOwner(), "deleted 1 file from ",
+                    new Timestamp(Instant.now().toEpochMilli())
+            );
+            activityService.save(activity);
             return ResponseEntity.ok(new MessageResponse("File Deleted"));
         } else if (response == 0) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error : file not exists"));

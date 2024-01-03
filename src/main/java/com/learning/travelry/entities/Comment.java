@@ -28,6 +28,8 @@ public class Comment {
     @Column(name = "created")
     Timestamp created;
 
+    public Comment() { }
+
     public Comment(User sender, Media media, String content, Timestamp created) {
         this.sender = sender;
         this.media = media;

@@ -28,7 +28,7 @@ public class FileUtils {
     }
 
     public static boolean isFileImage(MultipartFile multipartFile) {
-        return allowedFileExtensions.contains(FilenameUtils.getExtension(
+        return allowedImageExtensions.contains(FilenameUtils.getExtension(
                 multipartFile.getOriginalFilename()
         ));
     }

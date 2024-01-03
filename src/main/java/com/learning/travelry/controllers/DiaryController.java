@@ -1,19 +1,13 @@
 package com.learning.travelry.controllers;
 
-import com.learning.travelry.entities.Diary;
-import com.learning.travelry.entities.Member;
-import com.learning.travelry.entities.PublicUser;
-import com.learning.travelry.entities.User;
+import com.learning.travelry.entities.*;
 import com.learning.travelry.exceptions.AwsExceptions.FileEmptyException;
 import com.learning.travelry.payload.request.AddMemberRequest;
 import com.learning.travelry.payload.request.CreateDiaryRequest;
 import com.learning.travelry.payload.request.UpdateDiaryRequest;
 import com.learning.travelry.payload.response.MembersListResponse;
 import com.learning.travelry.payload.response.MessageResponse;
-import com.learning.travelry.service.DiaryService;
-import com.learning.travelry.service.MediaService;
-import com.learning.travelry.service.MemberService;
-import com.learning.travelry.service.UserService;
+import com.learning.travelry.service.*;
 import com.learning.travelry.utils.FileUtils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +41,9 @@ public class DiaryController {
 
     @Autowired
     private MemberService memberService;
+
+    @Autowired
+    private ActivityService activityService;
 
     @PostMapping("/")
     public ResponseEntity<?> createDiary(@Valid @ModelAttribute CreateDiaryRequest createDiaryRequest,
@@ -132,8 +129,33 @@ public class DiaryController {
             }
         }
 
-        if (diaryService.getDiaryById(updateDiaryRequest.getId()) == null) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = (String) authentication.getPrincipal();
+        Diary diary = diaryService.getDiaryById(updateDiaryRequest.getId());
+        User user = userService.getUser(email);
+
+        if (diary == null) {
             return ResponseEntity.badRequest().body(new MessageResponse("Diary Not Exists"));
+        }
+
+        List<PublicUser> members = memberService.getMembersByDiaryId(diary.getId());
+
+        boolean isMemberOrOwner = false;
+
+        if (diary.getCreator().getEmail().equals(email)) {
+            isMemberOrOwner = true;
+        } else {
+            for (PublicUser pu : members) {
+                if (pu.getEmail().equals(email)) {
+                    isMemberOrOwner = true;
+                    break;
+                }
+            }
+        }
+
+        if (!isMemberOrOwner) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error : Unauthorized access"));
         }
 
 
@@ -204,6 +226,11 @@ public class DiaryController {
                     updateDiaryRequest.getColor(),
                     updateDiaryRequest.getDiaryName()
             );
+            Activity activity = new Activity(
+                        diary, user, "updated settings of ",
+                        new Timestamp(Instant.now().toEpochMilli())
+            );
+            activityService.save(activity);
             return ResponseEntity.ok(new MessageResponse("Diary Updated Successfully"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(new MessageResponse("Something bad happen"));
@@ -259,6 +286,12 @@ public class DiaryController {
                             id + "-" + member, memberObject, diary
                     )
             )) {
+                User user = userService.getUser(email);
+                Activity activity = new Activity(
+                            diary, user, "added " + member + " to ",
+                            new Timestamp(Instant.now().toEpochMilli())
+                );
+                activityService.save(activity);
                 return ResponseEntity.ok(new MessageResponse("Member Added to diary"));
             } else {
                 return ResponseEntity.badRequest().body(new MessageResponse("Member already exists"));
