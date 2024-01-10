@@ -15,4 +15,6 @@ public interface PublicComment {
 
     String getUserName();
 
+    String getEmail();
+
 }

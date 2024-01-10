@@ -14,7 +14,7 @@ public interface MediaService {
 
     List<String[]> uploadFiles(MultipartFile[] multipartFiles, String diaryName) throws ExecutionException, InterruptedException;
 
-    int deleteFile(String fileName);
+    int deleteFile(String fileName, BigInteger id);
 
     boolean saveAll(List<Media> medias);
 

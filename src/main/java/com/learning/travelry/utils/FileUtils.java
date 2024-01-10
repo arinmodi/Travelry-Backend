@@ -10,8 +10,8 @@ import java.util.Objects;
 
 public class FileUtils {
 
-    static List<String> allowedFileExtensions = new ArrayList<>(Arrays.asList("png", "jpg", "jpeg", "mp4"));
-    static List<String> allowedImageExtensions = new ArrayList<>(Arrays.asList("png", "jpg", "jpeg"));
+    static List<String> allowedFileExtensions = new ArrayList<>(Arrays.asList("png", "jpg", "jpeg", "mp4", "webp"));
+    static List<String> allowedImageExtensions = new ArrayList<>(Arrays.asList("png", "jpg", "jpeg", "webp"));
 
 
     public static boolean isValidFile(MultipartFile multipartFile) {
@@ -29,7 +29,7 @@ public class FileUtils {
 
     public static boolean isFileImage(MultipartFile multipartFile) {
         return allowedImageExtensions.contains(FilenameUtils.getExtension(
-                multipartFile.getOriginalFilename()
+                Objects.requireNonNull(multipartFile.getOriginalFilename()).toLowerCase()
         ));
     }
 }

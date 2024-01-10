@@ -5,6 +5,8 @@ import com.learning.travelry.exceptions.AwsExceptions.FileEmptyException;
 import com.learning.travelry.payload.request.AddMemberRequest;
 import com.learning.travelry.payload.request.CreateDiaryRequest;
 import com.learning.travelry.payload.request.UpdateDiaryRequest;
+import com.learning.travelry.payload.response.MediaUploadListResponse;
+import com.learning.travelry.payload.response.MediaUploadResponse;
 import com.learning.travelry.payload.response.MembersListResponse;
 import com.learning.travelry.payload.response.MessageResponse;
 import com.learning.travelry.service.*;
@@ -22,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -231,7 +234,10 @@ public class DiaryController {
                         new Timestamp(Instant.now().toEpochMilli())
             );
             activityService.save(activity);
-            return ResponseEntity.ok(new MessageResponse("Diary Updated Successfully"));
+            List<MediaUploadResponse> mediaUploadResponses = new ArrayList<>();
+            mediaUploadResponses.add(new MediaUploadResponse(coverImageUrl, null));
+            mediaUploadResponses.add(new MediaUploadResponse(headerImageUrl, null));
+            return ResponseEntity.ok(new MediaUploadListResponse(mediaUploadResponses));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(new MessageResponse("Something bad happen"));
         }
@@ -307,6 +313,12 @@ public class DiaryController {
     public ResponseEntity<?> getMembers(@PathVariable(value = "diaryId") BigInteger diaryId) {
         try {
             List<PublicUser> members = memberService.getMembersByDiaryId(diaryId);
+            Diary diary = diaryService.getDiaryById(diaryId);
+            members.add(0, new PublicUser(
+                    diary.getCreator().getEmail(),
+                    diary.getCreator().getUsername(),
+                    diary.getCreator().getProfilePhoto()
+            ));
             return ResponseEntity.ok(new MembersListResponse((members)));
         } catch (Exception e) {
             System.out.println(e.toString());

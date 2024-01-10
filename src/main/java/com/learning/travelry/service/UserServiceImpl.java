@@ -53,15 +53,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Boolean markUserVerified(String email) {
+    public User markUserVerified(String email) {
         User user = userRepository.findByEmail(email);
 
         if (user != null) {
             user.setEmailVerified(true);
             userRepository.save(user);
-            return true;
+            return user;
         } else {
-            return false;
+            return null;
         }
     }
 

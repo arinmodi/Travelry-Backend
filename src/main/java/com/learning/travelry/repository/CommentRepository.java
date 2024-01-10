@@ -13,10 +13,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     @Query(
             value = "SELECT " +
-                    "c.comment_id AS id, c.content AS content, c.created AS created, u.profile_photo as profilePhoto, " +
+                    "c.comment_id AS id, c.content AS content, c.created AS created, u.profile_photo as profilePhoto, u.email AS email, " +
                     "u.username AS userName FROM comment c, users u " +
                     "where c.sender = u.email AND c.media_id = :id " +
-                    "ORDER BY c.created DESC",
+                    "ORDER BY c.created",
             nativeQuery = true
     )
     List<PublicComment> getComments(

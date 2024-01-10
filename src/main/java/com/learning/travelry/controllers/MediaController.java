@@ -159,7 +159,7 @@ public class MediaController {
             return ResponseEntity.badRequest().body(new MessageResponse("Error : Unauthorized access"));
         }
 
-        int response = mediaService.deleteFile(deleteMediaRequest.getFileName());
+        int response = mediaService.deleteFile(deleteMediaRequest.getFileName(), deleteMediaRequest.getMediaId());
 
         if (response == 1) {
             Activity activity = new Activity(

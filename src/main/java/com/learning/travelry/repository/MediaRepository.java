@@ -2,7 +2,9 @@ package com.learning.travelry.repository;
 
 import com.learning.travelry.entities.Media;
 import com.learning.travelry.entities.PublicMedia;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -28,5 +30,8 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
             @Param("limit") BigInteger limit,
             @Param("offset") BigInteger offset
     );
+
+    @Transactional
+    void deleteById(BigInteger id);
 
 }

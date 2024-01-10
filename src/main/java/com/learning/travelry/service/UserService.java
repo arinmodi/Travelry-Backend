@@ -8,7 +8,7 @@ public interface UserService {
 
         Boolean existEmail(String email);
 
-        Boolean markUserVerified(String email);
+        User markUserVerified(String email);
 
         User getUser(String email);
 

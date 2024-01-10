@@ -1,5 +1,6 @@
 package com.learning.travelry.controllers;
 
+import com.learning.travelry.entities.PublicUser;
 import com.learning.travelry.entities.User;
 import com.learning.travelry.payload.request.LoginRequest;
 import com.learning.travelry.payload.request.SignupRequest;
@@ -49,9 +50,15 @@ public class AuthenticationController {
         try {
             if (JwtUtil.validateToken(token)) {
                 String response = JwtUtil.extractEmail(token);
+                User user = userService.markUserVerified(response);
 
-                if (userService.markUserVerified(response)) {
-                    return ResponseEntity.ok(new MessageResponse("Successfully verified"));
+                if (user != null) {
+                    String loginToken = JwtUtil.generateTokenForLogin(response);
+                    return ResponseEntity.ok(new LoginResponse(
+                            "Email Verified Successfully",
+                            loginToken, new PublicUser(user.getEmail(), user.getUsername(), user.getProfilePhoto()),
+                            true)
+                    );
                 } else {
                     return ResponseEntity.badRequest().body(new MessageResponse("Error: Something Bad Happen!"));
                 }
@@ -76,9 +83,15 @@ public class AuthenticationController {
 
             if (user.getEmailVerified()) {
                 String token = JwtUtil.generateTokenForLogin(loginRequest.getEmail());
-                return ResponseEntity.ok(new LoginResponse("Successfully LoggedIn", token));
+                return ResponseEntity.ok(new LoginResponse(
+                        "Successfully LoggedIn",
+                        token, new PublicUser(user.getEmail(), user.getUsername(), user.getProfilePhoto()),
+                        true)
+                );
             } else {
-                return ResponseEntity.badRequest().body(new MessageResponse("Error: Email Verification Required"));
+                return ResponseEntity.ok(new LoginResponse("Email Verified Required",
+                        null, null, false)
+                );
             }
         } else {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid credentials!"));

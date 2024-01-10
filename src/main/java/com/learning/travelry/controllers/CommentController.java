@@ -7,6 +7,7 @@ import com.learning.travelry.service.*;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,9 @@ public class CommentController {
 
     @Autowired
     private MediaService mediaService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     private boolean isMemberOrOwner(Diary diary, String email) {
         List<PublicUser> members = memberService.getMembersByDiaryId(diary.getId());
@@ -74,11 +78,15 @@ public class CommentController {
         }
 
         long currentTimestampMillis = Instant.now().toEpochMilli();
-
-        if (commentService.save(
-                new Comment(sender, media, commentRequest.getContent(), new Timestamp(currentTimestampMillis))
-        )) {
-            return ResponseEntity.ok().body(new MessageResponse("Comment Added"));
+        Comment nc = new Comment(sender, media, commentRequest.getContent(), new Timestamp(currentTimestampMillis));
+        if (commentService.save(nc)) {
+            CommentForWebSocket cws = new CommentForWebSocket(
+                    nc.getCommentId(), nc.getContent(), nc.getCreated(),
+                    nc.getSender().getProfilePhoto(), nc.getSender().getUsername(),
+                    nc.getSender().getEmail()
+            );
+            messagingTemplate.convertAndSend("/topic/comment/"+mediaId, cws);
+            return ResponseEntity.ok().body(new MessageResponse("comment added"));
         } else {
             return ResponseEntity.internalServerError().body(new MessageResponse("Server Error"));
         }

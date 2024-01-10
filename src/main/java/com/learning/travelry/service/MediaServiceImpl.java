@@ -54,11 +54,12 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public int deleteFile(String fileName) {
+    public int deleteFile(String fileName, BigInteger mediaId) {
         DeleteObjectRequest request = new DeleteObjectRequest(bucketName, fileName);
         try {
             if (s3Client.doesObjectExist(bucketName, fileName)) {
                 s3Client.deleteObject(request);
+                mediaRepository.deleteById(mediaId);
             } else {
                 return 0;
             }

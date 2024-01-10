@@ -1,11 +1,9 @@
 package com.learning.travelry.controllers;
 
-import com.learning.travelry.entities.Diary;
-import com.learning.travelry.entities.PublicActivity;
-import com.learning.travelry.entities.PublicDiary;
-import com.learning.travelry.entities.PublicUser;
+import com.learning.travelry.entities.*;
 import com.learning.travelry.exceptions.AwsExceptions.FileEmptyException;
 import com.learning.travelry.payload.request.UpdateProfileRequest;
+import com.learning.travelry.payload.response.MediaUploadResponse;
 import com.learning.travelry.payload.response.MessageResponse;
 import com.learning.travelry.service.*;
 import com.learning.travelry.utils.FileUtils;
@@ -96,7 +94,7 @@ public class UserController {
         }
 
         if (userService.updateUser(imageUrl, updateProfileRequest.getUsername(), email)) {
-            return ResponseEntity.ok(new MessageResponse("User Updated successfully"));
+            return ResponseEntity.ok(new MediaUploadResponse(imageUrl, null));
         } else {
             return ResponseEntity.badRequest().body(new MessageResponse("Something bad happen"));
         }
@@ -231,6 +229,19 @@ public class UserController {
             System.out.println(e.toString());
             return ResponseEntity.internalServerError().body(new MessageResponse("Something bad happen"));
         }
+    }
+
+    @GetMapping("/{email}")
+    public ResponseEntity<?> getUserDetails(
+            @PathVariable(name = "email") String email
+    ) {
+        User user = userService.getUser(email);
+
+        PublicUser pu = user == null ? null : new PublicUser(
+                user.getEmail(), user.getUsername(), user.getProfilePhoto()
+        );
+
+        return ResponseEntity.ok().body(pu);
     }
 
 }
